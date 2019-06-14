@@ -21,7 +21,6 @@ def dice_loss(input, target):
 class GeneralizedDiceLoss(nn.Module):
     """Computes Generalized Dice Loss (GDL) as described in https://arxiv.org/pdf/1707.03237.pdf
     """
-
     def __init__(self, epsilon=1e-5, weight=None, ignore_index=None, sigmoid_normalization=False):
         super(GeneralizedDiceLoss, self).__init__()
         self.epsilon = epsilon
@@ -67,7 +66,6 @@ class GeneralizedDiceLoss(nn.Module):
 def flatten_mod(tensor):
     out = tensor.permute(0, 2, 3, 4, 1).contiguous().view(26,-1)#class is hardcoded. please avoid
     return out
-
 
 def flatten(tensor):
     """Flattens a given tensor such that the channel axis is first.

@@ -49,16 +49,13 @@ def get_logger(name, level=logging.INFO):
 
     return logger
 
-def get_patches(image, out_path):
+def get_patches(image, out_path, phase):
     with open('../data/verse/shape_info.json', 'r') as fp:
         data = json.load(fp)
     image_name = image
     read_image = sitk.ReadImage(image)
     image = sitk.GetArrayFromImage(read_image)
-    print('BEFORE', image.shape)
     image = np.transpose(image, (1, 2, 0))
-
-    print('AFTER ', image.shape)
 
     patch_size = 128
 
@@ -104,17 +101,19 @@ def get_patches(image, out_path):
 
     data[image_name] = image.shape
 
-
-    print('GET PATCH ', image.shape)
     with open('../data/shape_info.json', 'w') as fp:
         json.dump(data, fp)
     for z in range(0, depth_step, patch_size):
         for y in range(0, width_step, patch_size):
             for x in range(0,height_step, patch_size):
-                print(os.path.join(out_path,image_name.split('/')[-1].split('.')[0]+str(count)))
-                patch = image[x:x+patch_size, y:y+patch_size, z:z+patch_size]
-                np.save(os.path.join('{}','{}').format(out_path,image_name.split('/')[-1].split('.')[0]+str(count)), patch)
-                count+=1
+                if phase == 'image':
+                    patch = image[x:x+patch_size, y:y+patch_size, z:z+patch_size]
+                    np.save(os.path.join('{}','{}').format(out_path,image_name.split('/')[-1].split('.')[0]+str(count)), patch)
+                    count+=1
+                else:
+                    patch = image[x:x+patch_size, y:y+patch_size, z:z+patch_size]
+                    np.save(os.path.join('{}','{}').format(out_path,image_name.split('/')[-1].split('.')[0].split('_')[0]+str(count)), patch)
+                    count+=1
 
 def recon_image(npy_folder,original_image, out_path):
     #first convert these to a single numpy array
@@ -126,7 +125,6 @@ def recon_image(npy_folder,original_image, out_path):
     direction = original_image.GetDirection()
     image_to_fill = np.zeros((data[image_name]))
 
-    print('RECON ', image_to_fill.shape)
     filenames = os.listdir(npy_folder)
     filenames = sorted(filenames, key = lambda files: files.split('/')[-1].split('.')[0][-3:] ) 
     
@@ -180,6 +178,10 @@ def remove_non_label_patches(image_patches, mask_patches):
         load_mask = np.load(os.path.join(mask_patches, mask))
         print(np.unique(load_mask))
 
+def get_image_from_npy(npy_file,out_path):
+    file = np.load(npy_file)
+    file = sitk.GetImageFromArray(file)
+    return sitk.WriteImage(file,os.path.join(out_path,npy_file.split('/')[-1].split('.')[0]+'.nii.gz') )
 
 MIN_BOUND = -100.0
 MAX_BOUND = 400.0
@@ -197,6 +199,11 @@ if __name__ == "__main__":
     # for files in os.listdir(image_folder):
     #     get_patches(os.path.join(image_folder, files), output_folder)
     # recon_image('../data/npy/','../data/images/masks/verse009_seg.nii.gz', '../data/')
-    get_patches('../data/verse/images/image/verse033.nii.gz', '../data/verse/test_images/image_recon')
+    # get_patches('../data/verse/images/image/verse004.nii.gz', 'image_recon', 'image')
+    # get_patches('../data/verse/images/masks/verse004_seg.nii.gz', 'image_mask', 'mask')
+    # get_image_from_npy('image_mask/verse0342.npy', 'image_mask')
+    # get_image_from_npy('image_recon/verse0342.npy', 'image_recon')
+    get_image_from_npy('/media/bubbles/fecf5b15-5a64-477b-8192-f8508a986ffe/ai/ryan/Miccai/data/verse/test_images/predictions/verse0330.npy', 'image_mask')
+
     # image_file = '../data/verse/images/image/verse009.nii.gz'
-    recon_image('../data/verse/test_images/image_recon', '../data/verse/images/image/verse033.nii.gz', '../data/verse/test_images/image_recon')
+    # recon_image('../data/verse/test_images/image_recon', '../data/verse/images/image/verse033.nii.gz', '../data/verse/test_images/image_recon')

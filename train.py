@@ -24,8 +24,7 @@ from sklearn.metrics import confusion_matrix
 from utils import get_metrics
 from sklearn.metrics import accuracy_score
 from utils import normalize
-
-experiment_name = 'generalizedDice_with_normalization'
+experiment_name = 'OverfitOn5Samples'
 logger = get_logger(experiment_name)
 writer = SummaryWriter(os.path.join('../data/models/logs/',experiment_name ) )
 if not os.path.exists('../data/models/{}'.format(experiment_name)):
@@ -40,7 +39,7 @@ folder_mask = glob.glob('../data/patches/masks/*.npy')
 
 # split these path using a certain percentage
 len_data = len(folder_data)
-train_size = 0.8
+train_size = 1
 
 train_image_paths = folder_data[:int(len_data*train_size)]
 test_image_paths = folder_data[int(len_data*train_size):]
@@ -57,8 +56,8 @@ class CustomDataset(Dataset):
         self.transforms = transforms.ToTensor()
 
     def __getitem__(self, index):
-        # print(self.image_paths[index])
-        # print(self.target_paths[index])
+        print('****************************************************************************************', self.image_paths[index])
+        print('****************************************************************************************', self.target_paths[index])
         image = np.load(self.image_paths[index])
         mask = np.load(self.target_paths[index])
         image = torch.from_numpy(image)
@@ -81,7 +80,9 @@ in_channels = 1
 n_classes = 26
 base_n_filter = 16
 model = Modified3DUNet(in_channels, n_classes, base_n_filter).cuda()
-loss_function = GeneralizedDiceLoss()
+weights = [0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0,2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,2.0,2.0,2.0,1.0,1.0]
+class_weights = torch.FloatTensor(weights).cuda()
+loss_function = GeneralizedDiceLoss(weight = class_weights)
 
 epochs = 200
 for epoch in range(epochs):
@@ -90,6 +91,7 @@ for epoch in range(epochs):
     start = time.time()
     losses = []
     mean_accuracy = []
+
     for index,(image, mask) in enumerate(train_loader):
         image = normalize(image)
         image = torch.unsqueeze(image,0).float().cuda()
@@ -102,6 +104,7 @@ for epoch in range(epochs):
         loss = loss_function(output_2,one_hot_encode_labels)
         softmax = nn.Softmax(dim=1)
         output_2 = softmax(output_2)
+        print('PRED---------------',torch.unique(torch.argmax(output_2,1)),'TRUE ---------', torch.unique(label))
         conf_matrix = confusion_matrix(torch.argmax(output_2,1).view(-1).cpu().detach().numpy(), labels_for_conf.view(-1).cpu().detach().numpy())
         TPR,TNR, PPV, FPR ,FNR, ACC = get_metrics(conf_matrix)
         accuracy = accuracy_score(labels_for_conf.view(-1).cpu().detach().numpy(), torch.argmax(output_2,1).view(-1).cpu().detach().numpy())
