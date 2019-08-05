@@ -1,0 +1,28 @@
+This is an attempt to formalize the structure of the repo, before i start working on it.
+
+
+Pipleline
+
+Step 1. - Read in niigz images and labels
+Step 2. - Convert to numpy files of images and labels which will be input to the network
+Step 3. - Train the network
+Step 4. - Get Predictions
+Step 5. - Convert Predictions to image format.
+
+
+folder structure
+
+This will be one folder outside the main code-- 
+main_code/ data/
+
+#original images       #after extracting patches
+data/images/image      data/patches/images/
+data/images/masks	   data/patches/masks/
+
+
+
+'''
+Break down of step 1
+'''
+1. First convert the niigz file to a numpy file so this numpy file may be of shape(x, 128,128,128) and place it in a folder
+2. Read every slice of this numpy file and store it as a separate numpy file of shape (128,128,128)
